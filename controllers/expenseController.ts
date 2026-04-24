@@ -121,7 +121,7 @@ export const createExpense = async (
     res.status(201).json({ success: true, data: expense });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ success: false, error: error.errors });
+      res.status(400).json({ success: false, error: error.issues });
       return;
     }
     console.error("Create expense error:", error);
@@ -160,7 +160,7 @@ export const updateExpense = async (
     res.json({ success: true, data: expense });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ success: false, error: error.errors });
+      res.status(400).json({ success: false, error: error.issues });
       return;
     }
     console.error("Update expense error:", error);

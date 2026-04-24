@@ -52,7 +52,7 @@ export const createCategory = async (
     res.status(201).json({ success: true, data: category });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ success: false, error: error.errors });
+      res.status(400).json({ success: false, error: error.issues });
       return;
     }
     console.error("Create category error:", error);
@@ -96,7 +96,7 @@ export const updateCategory = async (
     res.json({ success: true, data: category });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ success: false, error: error.errors });
+      res.status(400).json({ success: false, error: error.issues });
       return;
     }
     console.error("Update category error:", error);
