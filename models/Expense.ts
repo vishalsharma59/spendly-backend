@@ -5,7 +5,7 @@ export interface IExpense extends Document {
   userId: mongoose.Types.ObjectId;
   categoryId: mongoose.Types.ObjectId;
   amount: number;
-  description: string;
+  description?: string;
   date: Date;
   paymentMethod:
     | "cash"
@@ -37,7 +37,7 @@ const expenseSchema = new mongoose.Schema<IExpense>(
     },
     description: {
       type: String,
-      required: [true, "Description is required"],
+      required: false,
       trim: true,
       maxlength: [200, "Description cannot exceed 200 characters"],
     },

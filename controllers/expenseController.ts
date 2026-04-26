@@ -7,7 +7,7 @@ import { Category } from "../models/Category";
 const expenseSchema = z.object({
   categoryId: z.string().min(1, "Category is required"),
   amount: z.number().positive("Amount must be greater than 0"),
-  description: z.string().min(1, "Description is required").trim(),
+  description: z.string().trim().optional().nullable(),
   date: z.string().min(1, "Date is required"),
   paymentMethod: z
     .enum(["cash", "credit_card", "debit_card", "bank_transfer", "upi"])
