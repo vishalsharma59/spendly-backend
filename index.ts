@@ -6,6 +6,8 @@ import connectDB from "./config/db";
 import authRoutes from "./routes/auth";
 import categoryRoutes from "./routes/categories";
 import expenseRoutes from "./routes/expenses";
+import creditRoutes from "./routes/credits";
+import balanceRoutes from "./routes/balance";
 
 dotenv.config();
 
@@ -27,6 +29,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/expenses", expenseRoutes);
+app.use("/api/credits", creditRoutes);
+app.use("/api/balance", balanceRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({

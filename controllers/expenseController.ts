@@ -3,6 +3,7 @@ import { z } from "zod";
 import mongoose from "mongoose";
 import { Expense } from "../models/Expense";
 import { Category } from "../models/Category";
+import { Credit } from "../models/Credit";
 
 const expenseSchema = z.object({
   categoryId: z.string().min(1, "Category is required"),
@@ -434,43 +435,60 @@ export const getInsights = async (
       59,
     );
 
-    const [thisMonth, lastMonth, topCategory] = await Promise.all([
-      Expense.aggregate([
-        { $match: { userId, date: { $gte: thisMonthStart } } },
-        { $group: { _id: null, total: { $sum: "$amount" } } },
-      ]),
-      Expense.aggregate([
-        {
-          $match: {
-            userId,
-            date: { $gte: lastMonthStart, $lte: lastMonthEnd },
+    const [thisMonth, lastMonth, topCategory, creditsThisMonth] =
+      await Promise.all([
+        Expense.aggregate([
+          { $match: { userId, date: { $gte: thisMonthStart } } },
+          { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]),
+        Expense.aggregate([
+          {
+            $match: {
+              userId,
+              date: { $gte: lastMonthStart, $lte: lastMonthEnd },
+            },
           },
-        },
-        { $group: { _id: null, total: { $sum: "$amount" } } },
-      ]),
-      Expense.aggregate([
-        { $match: { userId, date: { $gte: thisMonthStart } } },
-        { $group: { _id: "$categoryId", total: { $sum: "$amount" } } },
-        { $sort: { total: -1 } },
-        { $limit: 1 },
-        {
-          $lookup: {
-            from: "categories",
-            localField: "_id",
-            foreignField: "_id",
-            as: "category",
+          { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]),
+        Expense.aggregate([
+          { $match: { userId, date: { $gte: thisMonthStart } } },
+          { $group: { _id: "$categoryId", total: { $sum: "$amount" } } },
+          { $sort: { total: -1 } },
+          { $limit: 1 },
+          {
+            $lookup: {
+              from: "categories",
+              localField: "_id",
+              foreignField: "_id",
+              as: "category",
+            },
           },
-        },
-        { $unwind: "$category" },
-      ]),
-    ]);
+          { $unwind: "$category" },
+        ]),
+        Credit.aggregate([
+          { $match: { userId, date: { $gte: thisMonthStart } } },
+          { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]),
+      ]);
 
     const thisTotal = thisMonth[0]?.total || 0;
     const lastTotal = lastMonth[0]?.total || 0;
+    const receivedTotal = creditsThisMonth[0]?.total || 0;
+    const netTotal = thisTotal - receivedTotal;
     const diff =
       lastTotal > 0 ? ((thisTotal - lastTotal) / lastTotal) * 100 : 0;
 
     const insights = [];
+
+    if (receivedTotal > 0) {
+      insights.push({
+        type: netTotal <= 0 ? "success" : "info",
+        message:
+          netTotal <= 0
+            ? `Credits received (₹${receivedTotal.toFixed(0)}) cover everything you paid this month — you're ₹${Math.abs(netTotal).toFixed(0)} ahead`
+            : `You paid ₹${thisTotal.toFixed(0)} and received ₹${receivedTotal.toFixed(0)} back — net ₹${netTotal.toFixed(0)} out of pocket`,
+      });
+    }
 
     if (lastTotal > 0) {
       insights.push({
@@ -492,13 +510,13 @@ export const getInsights = async (
 
     if (thisTotal > 0) {
       const dayOfMonth = now.getDate();
-      const avgPerDay = thisTotal / dayOfMonth;
+      const avgPerDay = netTotal / dayOfMonth;
       const projected =
         avgPerDay *
         new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
       insights.push({
         type: "info",
-        message: `At current pace, you'll spend ~₹${projected.toFixed(0)} this month`,
+        message: `At current pace, your net spend will be ~₹${projected.toFixed(0)} this month`,
       });
     }
 
